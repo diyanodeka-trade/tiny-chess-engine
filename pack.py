@@ -1,3 +1,10 @@
+"""
+Build script for tiny-chess-01.
+Compresses and packs the 50,000-node chess engine (engine_50k.min.py)
+using LZMA and Base85 into a compact, self-extracting main.py script.
+The 50,000-node limit provides optimal search depth and tactical strength
+within strict distribution size constraints.
+"""
 import lzma
 import base64
 
@@ -14,6 +21,7 @@ b_content = content.encode('ascii')
 size = len(b_content)
 print(f"main.py size: {size} bytes")
 
+# Ensure packed payload adheres strictly to the 4,096-byte distribution cap
 if size > 4096:
     print("FAIL: Size exceeds 4096 bytes")
     exit(1)
