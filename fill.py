@@ -1,34 +1,34 @@
-#!/usr/bin/env python3
-import sys, lzma, base64
+import lzma
+import base64
 
-def main():
-    min_path = 'src/engine_golf100k.min.py'
-    sys.argv = ['minify.py', 'src/engine_golf100k.py', min_path]
-    import src.minify
+min_path = '/home/hatch/workspace/makefun-chess/work/engine_50k.min.py'
+with open(min_path, 'rb') as f:
+    min_bytes = f.read()
 
-    with open(min_path, 'rb') as f:
-        orig = f.read()
+compressed = lzma.compress(min_bytes, preset=9)
+blob = base64.b85encode(compressed).decode('ascii')
 
-    comp = lzma.compress(orig, preset=9)
-    blob = base64.b85encode(comp).decode('ascii')
+content = f"import lzma as L,base64 as b\n# chess\nexec(L.decompress(b.b85decode('{blob}')))"
 
-    with open('main.py', 'r', encoding='ascii') as f:
-        tmpl = f.read()
+b_content = content.encode('ascii')
+size = len(b_content)
+print(f"main.py size: {size} bytes")
 
-    code = tmpl.replace('__BLOB__', blob)
-    size = len(code.encode('ascii'))
-    print(f"Generated main.py size: {size} bytes (limit 4096)")
+if size > 4096:
+    print("FAIL: Size exceeds 4096 bytes")
+    exit(1)
 
-    with open('main.py', 'w', encoding='ascii', newline='') as f:
-        f.write(code)
+with open('main.py', 'wb') as f:
+    f.write(b_content)
 
-    decomp = lzma.decompress(base64.b85decode(blob))
-    assert decomp == orig, "Round-trip verification failed!"
-    
-    if size < 4096 and decomp == orig:
-        print("PASS: Size < 4096 and round-trip verification successful.")
-    else:
-        print("FAIL: Size or verification failed.")
+# Round-trip verification
+decompressed = lzma.decompress(base64.b85decode(blob))
+lines = b_content.split(b'\n')
+assert len(lines) == 3, f"Expected 3 lines, got {len(lines)}"
+assert not b_content.endswith(b'\n'), "Has trailing newline"
 
-if __name__ == '__main__':
-    main()
+if decompressed == min_bytes:
+    print("PASS: fill.py built and verified main.py successfully")
+else:
+    print("FAIL: Round-trip mismatch")
+    exit(1)
